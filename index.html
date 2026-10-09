@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROXY PANEL V2.1</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #050505;
+    color: #e0e0e0;
+  }
+
+  /* ================= BACKGROUND EFFECTS ================= */
+  #bg-effects {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  #bg-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.55;
+  }
+
+  .grid-overlay {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 60, 0, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 60, 0, 0.06) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(circle at center, #000 30%, transparent 85%);
+    -webkit-mask-image: radial-gradient(circle at center, #000 30%, transparent 85%);
+    animation: gridMove 24s linear infinite;
+  }
+
+  @keyframes gridMove {
+    0% { background-position: 0 0, 0 0; }
+    100% { background-position: 48px 48px, 48px 48px; }
+  }
+
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.55;
+    animation: float 18s ease-in-out infinite;
+  }
+
+  .orb.o1 {
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, #ff3c00, transparent 70%);
+    top: -180px; left: -120px;
+  }
+  .orb.o2 {
+    width: 520px; height: 520px;
+    background: radial-gradient(circle, #ff003c, transparent 70%);
+    bottom: -220px; right: -160px;
+    animation-delay: -6s;
+  }
+  .orb.o3 {
+    width: 380px; height: 380px;
+    background: radial-gradient(circle, #ff9500, transparent 70%);
+    top: 45%; left: 55%;
+    animation-delay: -12s;
+    opacity: 0.35;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(60px, -40px) scale(1.1); }
+    66% { transform: translate(-50px, 50px) scale(0.95); }
+  }
+
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(255, 60, 0, 0.025) 3px,
+      rgba(255, 60, 0, 0.025) 4px
+    );
+    animation: scan 8s linear infinite;
+    opacity: 0.8;
+  }
+
+  @keyframes scan {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(4px); }
+  }
+
+  /* ================= START SCREEN ================= */
+  #start-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle at 50% 40%, #1a0a05, #050505 70%);
+    transition: opacity 0.5s ease;
+  }
+
+  #start-screen .logo-tag {
+    font-size: 0.8rem;
+    letter-spacing: 8px;
+    color: #ff6a00;
+    border: 1px solid rgba(255, 60, 0, 0.5);
+    padding: 6px 20px;
+    border-radius: 30px;
+    margin-bottom: 25px;
+    text-shadow: 0 0 12px rgba(255, 60, 0, 0.8);
+    background: rgba(255, 60, 0, 0.05);
+  }
+
+  #start-screen h1 {
+    font-size: 4rem;
+    font-weight: 900;
+    letter-spacing: 8px;
+    background: linear-gradient(180deg, #fff 0%, #ff3c00 80%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 25px rgba(255, 60, 0, 0.9));
+    animation: pulse 2.5s infinite;
+    text-align: center;
+    line-height: 1;
+  }
+
+  #start-screen .ver {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 14px;
+    color: #ff3c00;
+    text-shadow: 0 0 20px #ff3c00;
+    margin-top: 6px;
+  }
+
+  #start-screen .sub {
+    color: #777;
+    font-size: 0.85rem;
+    margin: 30px 0 45px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  #start-btn {
+    padding: 20px 80px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: 5px;
+    color: #fff;
+    background: linear-gradient(135deg, #ff3c00, #ff6a00);
+    border: none;
+    border-radius: 60px;
+    cursor: pointer;
+    box-shadow: 0 0 40px rgba(255, 60, 0, 0.6), inset 0 0 20px rgba(255,255,255,0.15);
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+  }
+
+  #start-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 70px rgba(255, 60, 0, 1);
+  }
+
+  #start-btn::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -60%;
+    width: 60%; height: 200%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+    transform: rotate(20deg);
+    animation: shine 2.8s infinite;
+  }
+
+  @keyframes shine {
+    0% { left: -60%; }
+    100% { left: 130%; }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(1.015); }
+  }
+
+  /* ================= INTRO VIDEO ================= */
+  #intro-container {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+  }
+
+  #intro-container.active { display: flex; }
+
+  #intro-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+
+  #skip-btn {
+    position: absolute;
+    bottom: 40px; right: 40px;
+    padding: 12px 28px;
+    background: rgba(255, 60, 0, 0.85);
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    z-index: 210;
+    transition: background 0.3s, transform 0.3s;
+    text-transform: uppercase;
+  }
+
+  #skip-btn:hover {
+    background: #ff3c00;
+    transform: scale(1.05);
+  }
+
+  /* ================= MAIN PANEL ================= */
+  #panel {
+    display: none;
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    padding: 26px 30px 40px;
+    overflow-y: auto;
+  }
+
+  #panel.active { display: block; }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 18px 22px;
+    border: 1px solid rgba(255, 60, 0, 0.25);
+    border-radius: 16px;
+    background: rgba(15, 10, 8, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    margin-bottom: 22px;
+    box-shadow: 0 0 40px rgba(255, 60, 0, 0.08);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .brand-mark {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ff3c00, #ff9500);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 900;
+    font-size: 1.3rem;
+    color: #fff;
+    box-shadow: 0 0 20px rgba(255, 60, 0, 0.7);
+  }
+
+  .brand h2 {
+    font-size: 1.45rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 0 14px rgba(255, 60, 0, 0.6);
+  }
+
+  .brand .ver-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #ff3c00;
+    border: 1px solid rgba(255, 60, 0, 0.6);
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-left: 6px;
+    background: rgba(255, 60, 0, 0.08);
+  }
+
+  .header-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    font-size: 0.78rem;
+  }
+
+  .header-meta .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #4caf50;
+    letter-spacing: 2px;
+    font-weight: 700;
+  }
+
+  .status-dot {
+    width: 9px; height: 9px;
+    background: #4caf50;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #4caf50;
+    animation: blink 1.4s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+
+  .header-meta .update {
+    color: #ff6a00;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+  }
+
+  .header-meta .ping {
+    color: #888;
+    letter-spacing: 1px;
+  }
+
+  /* Section titles */
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    letter-spacing: 5px;
+    color: #ff3c00;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin: 26px 0 14px;
+  }
+
+  .section-title::before {
+    content: '';
+    width: 4px; height: 18px;
+    background: linear-gradient(180deg, #ff3c00, #ff9500);
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(255, 60, 0, 0.8);
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 60, 0, 0.5), transparent);
+  }
+
+  /* Feature grid */
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .option-card {
+    background: rgba(18, 14, 12, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid #232323;
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border 0.3s, box-shadow 0.3s, transform 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .option-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, #ff3c00, transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+  }
+
+  .option-card:hover {
+    border-color: rgba(255, 60, 0, 0.6);
+    box-shadow: 0 0 25px rgba(255, 60, 0, 0.18);
+    transform: translateY(-2px);
+  }
+
+  .option-card:hover::before {
+    transform: translateX(100%);
+  }
+
+  .option-card .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .option-card .card-icon {
+    font-size: 1.35rem;
+    filter: drop-shadow(0 0 8px rgba(255, 60, 0, 0.6));
+  }
+
+  .option-card .card-name {
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 1.5px;
+    color: #fff;
+    text-transform: uppercase;
+  }
+
+  .option-card .card-desc {
+    font-size: 0.74rem;
+    color: #888;
+    line-height: 1.45;
+    letter-spacing: 0.3px;
+  }
+
+  /* Toggle switch */
+  .toggle {
+    position: relative;
+    width: 50px;
+    height: 26px;
+    background: #2a2a2a;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: background 0.3s, box-shadow 0.3s;
+    flex-shrink: 0;
+    border: 1px solid #333;
+  }
+
+  .toggle.on {
+    background: linear-gradient(90deg, #ff3c00, #ff6a00);
+    box-shadow: 0 0 18px rgba(255, 60, 0, 0.7);
+    border-color: #ff3c00;
+  }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 20px; height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  }
+
+  .toggle.on::after {
+    transform: translateX(24px);
+  }
+
+  /* Sensitivity section */
+  .params-section {
+    background: rgba(15, 12, 10, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid #232323;
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .slider-row:last-child { margin-bottom: 0; }
+
+  .slider-row label {
+    width: 170px;
+    font-size: 0.8rem;
+    color: #bbb;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .slider-row input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: linear-gradient(90deg, #ff3c00 var(--fill, 50%), #262626 var(--fill, 50%));
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border: 3px solid #ff3c00;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(255, 60, 0, 0.9);
+    transition: transform 0.2s;
+  }
+
+  .slider-row input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+  }
+
+  .slider-row input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border: 3px solid #ff3c00;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(255, 60, 0, 0.9);
+  }
+
+  .slider-row .value {
+    width: 52px;
+    text-align: right;
+    font-size: 0.85rem;
+    color: #ff6a00;
+    font-weight: 800;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+  }
+
+  /* Apply button */
+  .action-btn {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #ff3c00, #ff6a00);
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 0 30px rgba(255, 60, 0, 0.45);
+    margin: 20px 0 16px;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 55px rgba(255, 60, 0, 0.85);
+  }
+
+  .action-btn:active { transform: scale(0.99); }
+
+  /* Log */
+  .log-box {
+    background: rgba(5, 5, 5, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid #1a1a1a;
+    border-radius: 12px;
+    padding: 14px 18px;
+    max-height: 140px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.74rem;
+    color: #4caf50;
+    line-height: 1.7;
+    letter-spacing: 0.5px;
+  }
+
+  .log-box .log-line {
+    opacity: 0;
+    animation: fadeIn 0.4s forwards;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .log-box .log-line.warn { color: #ffb300; }
+
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #555;
+    letter-spacing: 3px;
+    padding: 22px 0 8px;
+    border-top: 1px solid #1a1a1a;
+    margin-top: 22px;
+    text-transform: uppercase;
+  }
+
+  .footer span { color: #ff3c00; font-weight: 700; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0a0a; }
+  ::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #ff3c00; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    #start-screen h1 { font-size: 2.4rem; letter-spacing: 4px; }
+    #start-screen .ver { font-size: 1rem; letter-spacing: 8px; }
+    #start-btn { padding: 16px 50px; font-size: 1rem; }
+    .slider-row label { width: 110px; font-size: 0.7rem; }
+    .brand h2 { font-size: 1.1rem; }
+    .header-meta { align-items: flex-start; font-size: 0.7rem; }
+    #panel { padding: 18px 16px 30px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ BACKGROUND EFFECTS ============ -->
+  <div id="bg-effects">
+    <canvas id="bg-canvas"></canvas>
+    <div class="grid-overlay"></div>
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="orb o3"></div>
+    <div class="scanlines"></div>
+  </div>
+
+  <!-- ============ START SCREEN ============ -->
+  <div id="start-screen">
+    <div class="logo-tag">◆ PRIVATE ACCESS ◆</div>
+    <h1>PROXY</h1>
+    <div class="ver">PANEL V2.1</div>
+    <div class="sub">Advanced Control Interface</div>
+    <button id="start-btn">Initialize Panel</button>
+  </div>
+
+  <!-- ============ INTRO VIDEO ============ -->
+  <div id="intro-container">
+    <video id="intro-video" playsinline preload="auto">
+      <source src="https://litter.catbox.moe/4ruri8q3xqruocht.mp4" type="video/mp4">
+      Your browser does not support HTML5 video.
+    </video>
+    <button id="skip-btn">Skip Intro ⏭</button>
+  </div>
+
+  <!-- ============ MAIN PANEL ============ -->
+  <div id="panel">
+
+    <div class="panel-header">
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <div>
+          <h2>PROXY PANEL <span class="ver-badge">V2.1</span></h2>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="status"><span class="status-dot"></span> SYSTEM ONLINE</div>
+        <div class="update">LAST UPDATE: OCT 12, 2026 — 12:00</div>
+        <div class="ping">PING: 12ms • REGION: AUTO</div>
+      </div>
+    </div>
+
+    <!-- ========== FEATURE MODULES (6) ========== -->
+    <div class="section-title">Feature Modules</div>
+
+    <div class="options-grid" id="feature-grid">
+
+      <div class="option-card">
+        <div class="card-top">
+          <span class="card-icon">🎯</span>
+          <div class="toggle" data-name="Aimbot"></div>
+        </div>
+        <div class="card-name">Aimbot</div>
+        <div class="card-desc">Auto-lock crosshair on the closest visible target.</div>
+      </div>
+
+      <div class="option-card">
+        <div class="card-top">
+          <span class="card-icon">🧱</span>
+          <div class="toggle" data-name="Wallhack ESP"></div>
+        </div>
+        <div class="card-name">Wallhack / ESP</div>
+        <div class="card-desc">Reveal enemy positions through walls and objects.</div>
+      </div>
+
+      <div class="option-card">
+        <div class="card-top">
+          <span class="card-icon">💀</span>
+          <div class="toggle" data-name="Auto Headshot"></div>
+        </div>
+        <div class="card-name">Auto Headshot</div>
+        <div class="card-desc">Every shot is automatically redirected to the head.</div>
+      </div>
+
+      <div class="option-card">
+        <div class="card-top">
+          <span class="card-icon">🔫</span>
+          <div class="toggle" data-name="No Recoil"></div>
+        </div>
+        <div class="card-name">No Recoil</div>
+        <div class="card-desc">Removes vertical and horizontal weapon recoil.</div>
+      </div>
+
+      <div class="option-card">
+        <div class="card-top">
+          <span class="card-icon">📦</span>
+          <div class="toggle" data-name="Infinite Ammo"></div>
+        </div>
+        <div class="card-name">Infinite Ammo</div>
+        <div class="card-desc">No ammo is consumed while firing.</div>
+      </div>
+
+      <div class="option-card">
+        <div class="card-top">
+          <span class="card-icon">🛡️</span>
+          <div class="toggle" data-name="Anti-Ban"></div>
+        </div>
+        <div class="card-name">Anti-Ban</div>
+        <div class="card-desc">Anti-cheat protection layer for safe usage.</div>
+      </div>
+
+    </div>
+
+    <!-- ========== SENSITIVITY ========== -->
+    <div class="section-title">Sensitivity</div>
+
+    <div class="params-section">
+      <div class="slider-row">
+        <label>General</label>
+        <input type="range" min="0" max="100" value="85" class="param-slider" data-param="General">
+        <span class="value">85</span>
+      </div>
+      <div class="slider-row">
+        <label>Red Dot</label>
+        <input type="range" min="0" max="100" value="78" class="param-slider" data-param="Red Dot">
+        <span class="value">78</span>
+      </div>
+      <div class="slider-row">
+        <label>2x Scope</label>
+        <input type="range" min="0" max="100" value="72" class="param-slider" data-param="2x Scope">
+        <span class="value">72</span>
+      </div>
+      <div class="slider-row">
+        <label>4x Scope</label>
+        <input type="range" min="0" max="100" value="65" class="param-slider" data-param="4x Scope">
+        <span class="value">65</span>
+      </div>
+      <div class="slider-row">
+        <label>AWM Scope</label>
+        <input type="range" min="0" max="100" value="58" class="param-slider" data-param="AWM Scope">
+        <span class="value">58</span>
+      </div>
+      <div class="slider-row">
+        <label>Free Look</label>
+        <input type="range" min="0" max="100" value="80" class="param-slider" data-param="Free Look">
+        <span class="value">80</span>
+      </div>
+      <div class="slider-row">
+        <label>Fire Button</label>
+        <input type="range" min="0" max="100" value="90" class="param-slider" data-param="Fire Button">
+        <span class="value">90</span>
+      </div>
+    </div>
+
+    <button class="action-btn" id="apply-btn">Apply Configuration</button>
+
+    <div class="log-box" id="log">
+      <div class="log-line">[SYSTEM] PROXY PANEL V2.1 initialized.</div>
+      <div class="log-line">[SYSTEM] Secure connection established.</div>
+      <div class="log-line">[SYSTEM] Awaiting configuration...</div>
+    </div>
+
+    <div class="footer">
+      PROXY PANEL V2.1 &nbsp;•&nbsp; BUILD <span>2026.10.12</span> &nbsp;•&nbsp; ALL RIGHTS RESERVED
+    </div>
+
+  </div>
+
+<script>
+(function () {
+  /* ============ PARTICLE BACKGROUND ============ */
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let W, H;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', () => {
+    resize();
+    buildParticles();
+  });
+
+  function buildParticles() {
+    const count = Math.min(90, Math.floor((W * H) / 18000));
+    particles = [];
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.8 + 0.4,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        a: Math.random() * 0.5 + 0.25
+      });
+    }
+  }
+  buildParticles();
+
+  function animate() {
+    ctx.clearRect(0, 0, W, H);
+
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < 14000) {
+          const alpha = (1 - d2 / 14000) * 0.22;
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(255, 90, 20, ${alpha})`;
+          ctx.lineWidth = 0.6;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = W;
+      if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H;
+      if (p.y > H) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 90, 20, ${p.a})`;
+      ctx.shadowColor = 'rgba(255, 60, 0, 0.9)';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    requestAnimationFrame(animate);
+  }
+  animate();
+
+  /* ============ UI LOGIC ============ */
+  const startScreen = document.getElementById('start-screen');
+  const startBtn = document.getElementById('start-btn');
+  const introContainer = document.getElementById('intro-container');
+  const introVideo = document.getElementById('intro-video');
+  const skipBtn = document.getElementById('skip-btn');
+  const panel = document.getElementById('panel');
+  const logBox = document.getElementById('log');
+
+  function addLog(msg, type) {
+    const line = document.createElement('div');
+    line.className = 'log-line' + (type ? ' ' + type : '');
+    const t = new Date().toLocaleTimeString('en-US', { hour12: false });
+    line.textContent = `[${t}] ${msg}`;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+    while (logBox.children.length > 60) {
+      logBox.removeChild(logBox.firstChild);
+    }
+  }
+
+  startBtn.addEventListener('click', () => {
+    startScreen.style.opacity = '0';
+    setTimeout(() => {
+      startScreen.style.display = 'none';
+      introContainer.classList.add('active');
+      introVideo.play().catch(() => endIntro());
+    }, 400);
+  });
+
+  function endIntro() {
+    try {
+      introVideo.pause();
+      introVideo.currentTime = 0;
+    } catch (e) {}
+    introContainer.classList.remove('active');
+    panel.classList.add('active');
+    addLog('Intro sequence completed.');
+    addLog('Loading interface modules...');
+    setTimeout(() => addLog('6 feature modules ready.'), 400);
+    setTimeout(() => addLog('Sensitivity profile loaded.'), 800);
+    setTimeout(() => addLog('Panel ready. Select your configuration.'), 1200);
+  }
+
+  introVideo.addEventListener('ended', endIntro);
+  introVideo.addEventListener('error', () => {
+    console.warn('Intro video failed to load.');
+    endIntro();
+  });
+  skipBtn.addEventListener('click', endIntro);
+
+  document.querySelectorAll('.toggle').forEach(toggle => {
+    toggle.addEventListener('click', function () {
+      this.classList.toggle('on');
+      const name = this.dataset.name;
+      const state = this.classList.contains('on') ? 'ENABLED' : 'DISABLED';
+      addLog(`[MODULE] ${name} :: ${state}`, this.classList.contains('on') ? '' : 'warn');
+    });
+  });
+
+  function updateFill(slider) {
+    const pct = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+    slider.style.setProperty('--fill', pct + '%');
+  }
+
+  document.querySelectorAll('.param-slider').forEach(slider => {
+    const valueSpan = slider.parentElement.querySelector('.value');
+    updateFill(slider);
+    slider.addEventListener('input', function () {
+      valueSpan.textContent = this.value;
+      updateFill(this);
+    });
+  });
+
+  document.getElementById('apply-btn').addEventListener('click', function () {
+    addLog('[ACTION] Applying configuration...');
+
+    setTimeout(() => {
+      const active = [];
+      document.querySelectorAll('.toggle.on').forEach(t => active.push(t.dataset.name));
+
+      if (active.length === 0) {
+        addLog('[ACTION] No modules enabled.', 'warn');
+      } else {
+        addLog(`[ACTION] Enabled modules (${active.length}):`);
+        active.forEach(m => addLog(`   ▸ ${m}`));
+      }
+
+      addLog('[SENSITIVITY] Applied values:');
+      document.querySelectorAll('.param-slider').forEach(s => {
+        addLog(`   ▸ ${s.dataset.param}: ${s.value}`);
+      });
+
+      addLog('[SYSTEM] Configuration applied successfully.');
+    }, 500);
+  });
+})();
+</script>
+</body>
+</html>
